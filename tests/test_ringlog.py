@@ -118,3 +118,44 @@ def test_web_api(tmp_path):
         assert status == 200 and body.decode("utf-8-sig").count("\n") == 2
     finally:
         server.shutdown()
+
+
+def test_web_window_mode_saves_with_dialog(tmp_path, monkeypatch):
+    pytest.importorskip("webview")
+    import ringlog.web as web
+
+    path = make_backup(tmp_path / "b")
+    target = tmp_path / "picked" / "my calls"
+    target.parent.mkdir()
+
+    class FakeWindow:
+        def create_file_dialog(self, kind, **kw):
+            return str(target) if kw.get("save_filename") else [str(path)]
+
+    revealed = []
+    monkeypatch.setattr(web.subprocess, "run", lambda args, **kw: revealed.append(args))
+    state, ref = web._State(), {}
+    state.window = FakeWindow()
+    server = ThreadingHTTPServer(("127.0.0.1", 0), web._make_handler(state, ref))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+
+    def post(route, body):
+        req = urllib.request.Request(base + route, json.dumps(body).encode(), {"X-Ringlog-Token": state.token}, method="POST")
+        try:
+            with urllib.request.urlopen(req) as r:
+                return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    try:
+        assert 'MODE = "window"' in urllib.request.urlopen(base + "/").read().decode()
+        assert post("/api/pick-folder", {}) == (200, {"path": str(path)})
+        assert post("/api/open", {"path": str(path)})[0] == 200
+        status, res = post("/api/export", {"format": "xlsx"})
+        assert status == 200 and res["path"].endswith("my calls.xlsx") and res["count"] == 5
+        assert load_workbook(res["path"])["Calls"].max_row == 6
+        assert post("/api/reveal", {"path": res["path"]})[0] == 200 and revealed
+        assert post("/api/reveal", {"path": str(path / "Manifest.plist")})[0] == 404
+    finally:
+        server.shutdown()

@@ -8,7 +8,10 @@ websites open in the browser can't talk to it.
 from __future__ import annotations
 
 import json
+import os
 import secrets
+import subprocess
+import sys
 import tempfile
 import threading
 import webbrowser
@@ -18,7 +21,7 @@ from importlib import resources
 from pathlib import Path
 
 from . import __version__
-from .backup import Backup, BackupError, PasswordRequired, WrongPassword, find_backups, read_info
+from .backup import Backup, BackupError, PasswordRequired, WrongPassword, default_backup_dirs, find_backups, read_info
 from .calls import filter_calls, read_calls
 from .export import WRITERS
 
@@ -35,6 +38,8 @@ class _State:
         self.calls = []
         self.device = ""
         self.lock = threading.Lock()
+        self.window = None  # pywebview window when running as a desktop app
+        self.saved: set[str] = set()  # files we wrote, the only ones "Show in Finder" may reveal
 
 
 def _calls_json(calls):
@@ -54,6 +59,7 @@ def _calls_json(calls):
 def _make_handler(state: _State, server_ref: dict):
     page = resources.files("ringlog").joinpath("app.html").read_text(encoding="utf-8")
     page = page.replace("__TOKEN__", state.token).replace("__VERSION__", __version__)
+    page = page.replace("__PLATFORM__", sys.platform)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -81,11 +87,15 @@ def _make_handler(state: _State, server_ref: dict):
             if not self._host_ok():
                 return self._send(403, b"Forbidden", "text/plain")
             if self.path in ("/", "/index.html"):
+                html = page.replace("__MODE__", "window" if state.window else "browser")
                 return self._send(
                     200,
-                    page.encode(),
+                    html.encode(),
                     "text/html; charset=utf-8",
-                    {"Content-Security-Policy": "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"},
+                    {
+                        "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; "
+                        "style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+                    },
                 )
             self._send(404, b"Not found", "text/plain")
 
@@ -101,6 +111,8 @@ def _make_handler(state: _State, server_ref: dict):
                 "/api/backups": self.backups,
                 "/api/open": self.open_backup,
                 "/api/export": self.export,
+                "/api/pick-folder": self.pick_folder,
+                "/api/reveal": self.reveal,
                 "/api/quit": self.quit,
             }.get(self.path)
             if not route:
@@ -114,10 +126,38 @@ def _make_handler(state: _State, server_ref: dict):
             self._json(
                 200,
                 [
-                    {"path": str(b.path), "label": b.label, "encrypted": b.encrypted}
+                    {
+                        "path": str(b.path),
+                        "name": b.device_name,
+                        "product": b.product,
+                        "ios": b.ios_version,
+                        "date": b.last_backup.isoformat() if b.last_backup else None,
+                        "encrypted": b.encrypted,
+                    }
                     for b in find_backups()
                 ],
             )
+
+        def pick_folder(self, body):
+            if not state.window:
+                return self._json(400, {"error": "Folder picker is only available in the app window."})
+            import webview
+
+            start = next((str(d) for d in default_backup_dirs() if d.is_dir()), str(Path.home()))
+            picked = state.window.create_file_dialog(webview.FileDialog.FOLDER, directory=start)
+            self._json(200, {"path": picked[0] if picked else None})
+
+        def reveal(self, body):
+            path = str(body.get("path") or "")
+            if path not in state.saved or not os.path.exists(path):
+                return self._json(404, {"error": "File not found"})
+            if sys.platform == "darwin":
+                subprocess.run(["open", "-R", path], check=False)
+            elif sys.platform.startswith("win"):
+                subprocess.run(["explorer", "/select,", path], check=False)
+            else:
+                subprocess.run(["xdg-open", str(Path(path).parent)], check=False)
+            self._json(200, {"ok": True})
 
         def open_backup(self, body):
             path = Path(str(body.get("path") or "")).expanduser()
@@ -134,7 +174,7 @@ def _make_handler(state: _State, server_ref: dict):
             with state.lock:
                 state.calls = calls
                 state.device = info.device_name
-            self._json(200, {"device": info.device_name, "calls": _calls_json(calls)})
+            self._json(200, {"device": info.device_name, "path": str(info.path), "calls": _calls_json(calls)})
 
         def _filtered(self, body):
             def day(v):
@@ -155,29 +195,70 @@ def _make_handler(state: _State, server_ref: dict):
             if fmt not in WRITERS:
                 return self._json(400, {"error": "Unknown format"})
             calls = self._filtered(body)
-            with tempfile.TemporaryDirectory() as tmp:
-                out = Path(tmp) / f"calls.{fmt}"
-                if fmt == "html":
-                    WRITERS[fmt](calls, out, title=f"Call history – {state.device}")
-                else:
-                    WRITERS[fmt](calls, out)
-                data = out.read_bytes()
             name = f"call-history-{date.today():%Y-%m-%d}.{fmt}"
+            if state.window:
+                import webview
+
+                picked = state.window.create_file_dialog(
+                    webview.FileDialog.SAVE, directory=str(Path.home() / "Documents"), save_filename=name
+                )
+                if not picked:
+                    return self._json(200, {"cancelled": True})
+                out = Path(picked if isinstance(picked, str) else picked[0])
+                if out.suffix.lower() != f".{fmt}":
+                    out = out.with_name(out.name + f".{fmt}")
+                self._write(fmt, calls, out)
+                state.saved.add(str(out))
+                return self._json(200, {"path": str(out), "count": len(calls)})
+            with tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp) / name
+                self._write(fmt, calls, out)
+                data = out.read_bytes()
             self._send(200, data, _TYPES[fmt], {"Content-Disposition": f'attachment; filename="{name}"'})
+
+        def _write(self, fmt, calls, out):
+            if fmt == "html":
+                WRITERS[fmt](calls, out, title=f"Call history – {state.device}")
+            else:
+                WRITERS[fmt](calls, out)
 
         def quit(self, body):
             self._json(200, {"ok": True})
-            threading.Thread(target=server_ref["server"].shutdown, daemon=True).start()
+            if state.window:
+                state.window.destroy()
+            else:
+                threading.Thread(target=server_ref["server"].shutdown, daemon=True).start()
 
     return Handler
 
 
-def serve(port: int = 0, open_browser: bool = True) -> None:
+def serve(port: int = 0, open_browser: bool = True, window: bool = True) -> None:
+    """Open Ringlog in its own window (pywebview), or in the browser if that isn't available."""
     state = _State()
     ref: dict = {}
     server = ThreadingHTTPServer(("127.0.0.1", port), _make_handler(state, ref))
     ref["server"] = server
     url = f"http://127.0.0.1:{server.server_address[1]}/"
+
+    webview = None
+    if window:
+        try:
+            import webview
+        except ImportError:
+            webview = None
+
+    if webview:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        state.window = webview.create_window(
+            "Ringlog", url, width=1120, height=720, min_size=(820, 520), background_color="#f5f5f7"
+        )
+        try:
+            webview.start()
+        finally:
+            server.shutdown()
+            server.server_close()
+        return
+
     print(f"Ringlog is running at {url}\nKeep this window open while you use it. Press Ctrl+C to quit.")
     if open_browser:
         threading.Timer(0.3, webbrowser.open, args=(url,)).start()

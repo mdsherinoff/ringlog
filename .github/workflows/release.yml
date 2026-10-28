@@ -19,14 +19,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install . pyinstaller
-      - run: pyinstaller --onefile --name Ringlog --collect-data ringlog packaging/launcher.py
-      - name: Zip (macOS)
+      - run: pip install ".[window]" pyinstaller pillow
+      - name: Build Ringlog.app (macOS)
         if: runner.os == 'macOS'
-        run: cd dist && zip ../${{ matrix.asset }} Ringlog
-      - name: Zip (Windows)
+        run: |
+          pyinstaller --windowed --name Ringlog --icon packaging/icon.png --collect-data ringlog \
+            --osx-bundle-identifier io.github.mdsherinoff.ringlog packaging/launcher.py
+          ditto -c -k --keepParent dist/Ringlog.app ${{ matrix.asset }}
+      - name: Build Ringlog.exe (Windows)
         if: runner.os == 'Windows'
-        run: Compress-Archive -Path dist/Ringlog.exe -DestinationPath ${{ matrix.asset }}
+        run: |
+          pyinstaller --onefile --windowed --name Ringlog --icon packaging/icon.png --collect-data ringlog packaging/launcher.py
+          Compress-Archive -Path dist/Ringlog.exe -DestinationPath ${{ matrix.asset }}
       - uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.asset }}

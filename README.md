@@ -25,24 +25,35 @@ If you tick *Encrypt local backup*, remember the password. Ringlog needs it, and
 
 ### Download (no install)
 
-Get `Ringlog-macOS.zip` or `Ringlog-Windows.zip` from the [Releases](../../releases) page, unzip it and open **Ringlog**. A small window opens to keep the app running, and your browser shows the app.
+Get `Ringlog-macOS.zip` or `Ringlog-Windows.zip` from the [Releases](../../releases) page and unzip it. On a Mac, drag **Ringlog.app** into Applications.
 
-- **macOS:** the first time, right-click Ringlog → **Open** (the app isn't signed with a paid Apple certificate). To see your backups, give it **Full Disk Access** in System Settings → Privacy & Security.
+- **macOS:** the first time, right-click Ringlog → **Open** (the app isn't signed with a paid Apple certificate). To see your backups, give Ringlog **Full Disk Access** in System Settings → Privacy & Security, then reopen it.
 - **Windows:** if SmartScreen warns you, click **More info → Run anyway**.
 
 ### Or with Python 3.9+
 
 ```bash
-pip install git+https://github.com/mdsherinoff/ringlog
+pip install "ringlog[window] @ git+https://github.com/mdsherinoff/ringlog"
 ```
 
 ```bash
 ringlog
 ```
 
-## 3. Export
+## 3. Browse and export
 
-Pick a backup, enter its password if it has one, filter by date, name/number or call type, then click **Export Excel**, **CSV** or **Report**. Files go to your Downloads folder.
+Ringlog opens in its own window, laid out like a Mac app:
+
+- **Sidebar:** your backups, plus *All calls*, *Missed*, *Incoming* and *Outgoing* with counts.
+- **Toolbar:** switch between **List** and **Insights**, pick a date range, search by name or number, and **Export**.
+- **List:** a sortable table of every call. Click a column header to sort, and use the arrow keys to move through rows.
+- **Insights:** totals, calls per day or week, missed calls by hour, busiest weekdays, most frequent contacts and longest calls.
+
+Export saves exactly what you're looking at as Excel, CSV or an HTML report, and **Show in Finder** takes you to the file.
+
+Shortcuts: <kbd>⌘O</kbd> open a backup · <kbd>⌘F</kbd> search · <kbd>⌘E</kbd> export · <kbd>Esc</kbd> close. On Windows, use <kbd>Ctrl</kbd>.
+
+Backups kept somewhere else, such as an external drive, can be opened with **Open backup…**, or listed automatically by setting `RINGLOG_BACKUP_DIR` to that folder. `ringlog app --browser` uses your web browser instead of a window.
 
 ### Command line
 

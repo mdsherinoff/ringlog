@@ -68,7 +68,7 @@ def cmd_export(args) -> int:
 def cmd_app(args) -> int:
     from .web import serve
 
-    serve(port=args.port, open_browser=not args.no_browser)
+    serve(port=args.port, open_browser=not args.no_browser, window=not (args.browser or args.no_browser))
     return 0
 
 
@@ -90,9 +90,10 @@ def main(argv=None) -> int:
     e.add_argument("--only", nargs="+", choices=["incoming", "outgoing", "missed"])
     e.set_defaults(func=cmd_export)
 
-    a = sub.add_parser("app", help="open the point-and-click app in your browser (default)")
+    a = sub.add_parser("app", help="open the point-and-click app (default)")
     a.add_argument("--port", type=int, default=0)
-    a.add_argument("--no-browser", action="store_true")
+    a.add_argument("--browser", action="store_true", help="use your web browser instead of an app window")
+    a.add_argument("--no-browser", action="store_true", help="just start the server and print its address")
     a.set_defaults(func=cmd_app)
 
     args = p.parse_args(argv)

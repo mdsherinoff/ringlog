@@ -34,7 +34,16 @@ class WrongPassword(BackupError):
 
 
 def default_backup_dirs() -> list[Path]:
-    """Folders where Apple's tools keep backups on this computer."""
+    """Folders where Apple's tools keep backups on this computer.
+
+    RINGLOG_BACKUP_DIR (one or more folders, separated like PATH) is searched first,
+    for backups kept somewhere else such as an external drive.
+    """
+    extra = [Path(p).expanduser() for p in os.environ.get("RINGLOG_BACKUP_DIR", "").split(os.pathsep) if p]
+    return extra + _apple_backup_dirs()
+
+
+def _apple_backup_dirs() -> list[Path]:
     home = Path.home()
     if sys.platform == "darwin":
         return [home / "Library/Application Support/MobileSync/Backup"]

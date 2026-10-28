@@ -30,14 +30,14 @@ CALLS = [
 CONTACTS = [("Alex", "Morgan", None, "+44 (7700) 900-123"), (None, None, "Corner Shop", "+974 5555 1234")]
 
 
-def _call_db(path: Path):
+def _call_db(path: Path, calls):
     db = sqlite3.connect(path)
     db.execute(
         """CREATE TABLE ZCALLRECORD (Z_PK INTEGER PRIMARY KEY, ZANSWERED INTEGER, ZCALLTYPE INTEGER,
            ZORIGINATED INTEGER, ZDATE TIMESTAMP, ZDURATION FLOAT, ZADDRESS VARCHAR, ZNAME VARCHAR,
            ZSERVICE_PROVIDER VARCHAR, ZISO_COUNTRY_CODE VARCHAR)"""
     )
-    for when, number, orig, ans, dur, ctype, prov in CALLS:
+    for when, number, orig, ans, dur, ctype, prov in calls:
         db.execute(
             "INSERT INTO ZCALLRECORD (ZANSWERED, ZCALLTYPE, ZORIGINATED, ZDATE, ZDURATION, ZADDRESS, ZSERVICE_PROVIDER, ZISO_COUNTRY_CODE) VALUES (?,?,?,?,?,?,?,?)",
             (ans, ctype, orig, (when - APPLE_EPOCH).total_seconds(), dur, number, prov, "gb"),
@@ -46,11 +46,11 @@ def _call_db(path: Path):
     db.close()
 
 
-def _address_book(path: Path):
+def _address_book(path: Path, contacts):
     db = sqlite3.connect(path)
     db.execute("CREATE TABLE ABPerson (ROWID INTEGER PRIMARY KEY, First TEXT, Last TEXT, Organization TEXT)")
     db.execute("CREATE TABLE ABMultiValue (UID INTEGER PRIMARY KEY, record_id INTEGER, property INTEGER, value TEXT)")
-    for i, (first, last, org, number) in enumerate(CONTACTS, start=1):
+    for i, (first, last, org, number) in enumerate(contacts, start=1):
         db.execute("INSERT INTO ABPerson VALUES (?,?,?,?)", (i, first, last, org))
         db.execute("INSERT INTO ABMultiValue (record_id, property, value) VALUES (?,3,?)", (i, number))
         db.execute("INSERT INTO ABMultiValue (record_id, property, value) VALUES (?,4,?)", (i, "x@example.com"))
@@ -71,15 +71,15 @@ def _encrypt(key: bytes, data: bytes) -> bytes:
     return e.update(data) + e.finalize()
 
 
-def make_backup(root: Path, password: str | None = None) -> Path:
+def make_backup(root: Path, password: str | None = None, calls=CALLS, contacts=CONTACTS, device="Test iPhone") -> Path:
     root.mkdir(parents=True, exist_ok=True)
     work = root / "_src"
     work.mkdir()
-    _call_db(work / "calls.db")
-    _address_book(work / "ab.db")
+    _call_db(work / "calls.db", calls)
+    _address_book(work / "ab.db", contacts)
     files = {CALL_HISTORY: work / "calls.db", ADDRESS_BOOK: work / "ab.db"}
 
-    manifest = {"IsEncrypted": bool(password), "Version": "10.0", "Lockdown": {"DeviceName": "Test iPhone"}}
+    manifest = {"IsEncrypted": bool(password), "Version": "10.0", "Lockdown": {"DeviceName": device}}
     class_keys = {}
     if password:
         salt, dpsl = os.urandom(20), os.urandom(20)
@@ -126,7 +126,7 @@ def make_backup(root: Path, password: str | None = None) -> Path:
         plistlib.dump(manifest, f, fmt=plistlib.FMT_BINARY)
     with open(root / "Info.plist", "wb") as f:
         plistlib.dump(
-            {"Device Name": "Test iPhone", "Product Type": "iPhone16,1", "Product Version": "26.1",
+            {"Device Name": device, "Product Type": "iPhone16,1", "Product Version": "26.1",
              "Last Backup Date": datetime(2026, 10, 5, 8, 0)},
             f,
         )

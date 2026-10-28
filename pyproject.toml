@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ringlog"
-version = "0.1.0"
+version = "0.2.0"
 description = "Export iPhone call history from a local backup to Excel, CSV or an HTML report. Free, offline, open source."
 readme = "README.md"
 license = "MIT"
@@ -19,6 +19,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+window = ["pywebview>=5"]
 dev = ["pytest"]
 
 [project.scripts]

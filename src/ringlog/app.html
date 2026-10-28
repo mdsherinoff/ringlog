@@ -5,209 +5,643 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ringlog</title>
 <style>
-:root{--bg:#f6f6f4;--card:#fff;--ink:#1c1c1e;--muted:#6e6e73;--line:#e2e2df;--accent:#2f6fde;--accent-ink:#fff;--bad:#c4362b;--miss:#c4362b;--in:#24804a;--out:#2f6fde}
-@media (prefers-color-scheme:dark){:root{--bg:#131315;--card:#1d1d20;--ink:#f1f1f1;--muted:#9a9aa0;--line:#323236;--accent:#6a9cff;--accent-ink:#0d1a33;--bad:#ff7a6e;--miss:#ff7a6e;--in:#5fd38d;--out:#6a9cff}}
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --window:#ffffff;--sidebar:#ececef;--sidebar-line:#dcdce0;--toolbar:#ffffff;--line:#e5e5e7;--line-strong:#d1d1d6;
+  --text:#1d1d1f;--text-2:#6e6e73;--text-3:#a1a1a6;--hover:rgba(0,0,0,.045);--select-side:rgba(0,0,0,.085);
+  --row-alt:#f5f5f7;--accent:#0a66d8;--accent-soft:rgba(10,102,216,.12);--on-accent:#fff;--red:#e0352b;--green:#1f9d4a;
+  --control:#ffffff;--control-line:rgba(0,0,0,.14);--field:rgba(0,0,0,.05);--track:rgba(0,0,0,.065);
+  --shadow-btn:0 .5px 1.5px rgba(0,0,0,.12);--sheet:#f6f6f8;--menu:rgba(246,246,248,.98);--avatar:#a8adb8;
+  --chart:#0a66d8;--chart-soft:#d7e5f8;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --window:#1e1e20;--sidebar:#2a2a2d;--sidebar-line:#3a3a3d;--toolbar:#252527;--line:#363638;--line-strong:#48484b;
+  --text:#ececee;--text-2:#9b9ba1;--text-3:#6c6c71;--hover:rgba(255,255,255,.05);--select-side:rgba(255,255,255,.1);
+  --row-alt:#232325;--accent:#2f8cff;--accent-soft:rgba(47,140,255,.2);--on-accent:#fff;--red:#ff5f55;--green:#3fcf73;
+  --control:#3a3a3d;--control-line:rgba(255,255,255,.1);--field:rgba(255,255,255,.07);--track:rgba(255,255,255,.08);
+  --shadow-btn:0 .5px 1px rgba(0,0,0,.4);--sheet:#2c2c2f;--menu:rgba(44,44,47,.98);--avatar:#5c606a;
+  --chart:#2f8cff;--chart-soft:#1f3552;
+  color-scheme:dark;
+}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
-main{max-width:1000px;margin:0 auto;padding:28px 16px 64px}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:20px}
-h1{font-size:24px;margin:0}h2{font-size:16px;margin:0 0 12px}
-.muted{color:var(--muted)}.small{font-size:13px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
-button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 14px;cursor:pointer}
-button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-button:disabled{opacity:.5;cursor:default}
-input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.grow{flex:1 1 220px}
-.backup{display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer}
-.backup:hover{border-color:var(--accent)}
-.error{color:var(--bad);margin:10px 0 0}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.stat b{display:block;font-size:20px}.stat span{color:var(--muted);font-size:13px}
-.wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
-th{color:var(--muted);font-weight:500}td.n{text-align:right;font-variant-numeric:tabular-nums}
-.Missed{color:var(--miss)}.Incoming{color:var(--in)}.Outgoing{color:var(--out)}
-label.chk{display:inline-flex;gap:5px;align-items:center}
-.hidden{display:none}
-ol{padding-left:20px;margin:8px 0}
+html,body{height:100%;margin:0}
+body{font:13px/1.4 var(--font);color:var(--text);background:var(--window);-webkit-font-smoothing:antialiased;overflow:hidden;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--sidebar);border-right:1px solid var(--sidebar-line);display:flex;flex-direction:column;min-height:0}
+.side-scroll{flex:1;overflow:auto;padding:12px 10px}
+.side-h{font-size:11px;font-weight:600;color:var(--text-3);padding:10px 8px 4px;letter-spacing:.01em}
+.side-item{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:5px 8px;border-radius:6px;cursor:default;min-height:28px}
+.side-item:hover{background:var(--hover)}
+.side-item.on{background:var(--select-side)}
+.side-item .i{color:var(--accent)}
+.side-item .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-item .s{display:block;font-size:11px;color:var(--text-2)}
+.side-item .n{font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
+.side-item.missed .i{color:var(--red)}
+.side-item .i.lock{color:var(--text-3);width:13px;height:13px}
+.side-item.on .i.lock{color:var(--text-2)}
+.side-add{color:var(--text-2)}.side-add .i{color:var(--text-2)}
+.side-foot{padding:10px 18px 12px;font-size:11px;color:var(--text-3);display:flex;justify-content:space-between;align-items:center}
+.link{border:0;background:none;color:var(--text-2);padding:0;cursor:pointer;font-size:11px}
+.link:hover{color:var(--text)}
+
+/* Main */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--window)}
+.toolbar{display:flex;align-items:center;gap:10px;padding:10px 14px;min-height:52px;background:var(--toolbar);border-bottom:1px solid var(--line)}
+.ttl{flex:1;min-width:0}
+.ttl h1{font-size:15px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl p{margin:0;font-size:11px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:6px;border:.5px solid var(--control-line);background:var(--control);box-shadow:var(--shadow-btn);cursor:default;white-space:nowrap}
+.btn:active{filter:brightness(.95)}
+.btn.primary{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+.btn.icon{padding:0 7px}
+.btn:disabled{opacity:.45}
+.seg{display:inline-flex;background:var(--track);border-radius:7px;padding:2px;gap:2px}
+.seg button{border:0;background:none;height:22px;padding:0 12px;border-radius:5px;cursor:default;color:var(--text-2)}
+.seg button.on{background:var(--control);color:var(--text);box-shadow:var(--shadow-btn)}
+.search{display:flex;align-items:center;gap:5px;height:26px;width:200px;padding:0 8px;border-radius:7px;background:var(--field);color:var(--text-2)}
+.search input{flex:1;min-width:0;border:0;background:none;outline:0;font:inherit;color:var(--text)}
+.search:focus-within{box-shadow:0 0 0 3px var(--accent-soft);background:var(--control)}
+select.pop{font:inherit;color:var(--text);height:26px;padding:0 24px 0 10px;border-radius:6px;border:.5px solid var(--control-line);background:var(--control) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='10' viewBox='0 0 8 10'%3E%3Cpath d='M1 3.5 4 1l3 2.5M1 6.5 4 9l3-2.5' fill='none' stroke='%23888' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 8px center;box-shadow:var(--shadow-btn);appearance:none;-webkit-appearance:none}
+.range{display:none;align-items:center;gap:6px;color:var(--text-2);font-size:12px}
+.range.on{display:flex}
+input.field{font:inherit;color:var(--text);height:26px;padding:0 8px;border-radius:6px;border:.5px solid var(--control-line);background:var(--control);outline:0}
+input.field:focus{box-shadow:0 0 0 3px var(--accent-soft);border-color:var(--accent)}
+.content{flex:1;min-height:0;overflow:auto;position:relative}
+.status{display:flex;justify-content:center;gap:14px;padding:5px 12px;font-size:11px;color:var(--text-2);border-top:1px solid var(--line);background:var(--toolbar)}
+
+/* Table */
+table{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+thead th{position:sticky;top:0;z-index:1;background:var(--window);text-align:left;font-weight:500;font-size:11px;color:var(--text-2);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:default}
+thead th + th{border-left:1px solid var(--line)}
+thead th .ar{opacity:0;margin-left:4px}
+thead th.sorted .ar{opacity:1}
+tbody td{padding:0 10px;height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+tbody tr:nth-child(even) td{background:var(--row-alt)}
+tbody tr.sel td{background:var(--accent);color:var(--on-accent)}
+tbody tr.sel td .sub,tbody tr.sel td.missed,tbody tr.sel .dir{color:var(--on-accent)}
+td.num{text-align:right}th.num{text-align:right}
+.who{display:flex;align-items:center;gap:9px}
+.av{width:22px;height:22px;border-radius:50%;background:var(--avatar);color:#fff;font-size:9.5px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none;letter-spacing:.02em}
+.sub{color:var(--text-2)}
+td.missed .nm{color:var(--red)}
+.dir{display:inline-flex;align-items:center;gap:5px;color:var(--text-2)}
+.dir svg{width:13px;height:13px}
+.dir.Missed{color:var(--red)}
+
+/* Insights */
+.insights{padding:22px 24px 40px;max-width:1100px;user-select:text;-webkit-user-select:text}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile .k{font-size:11px;color:var(--text-2)}
+.tile .v{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+.tile .v small{font-size:12px;font-weight:400;color:var(--text-2);margin-left:4px}
+.panel{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px;min-width:0}
+.panel h3{font-size:13px;font-weight:600;margin:0 0 12px;display:flex;justify-content:space-between}
+.panel h3 span{font-weight:400;color:var(--text-2);font-size:11px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.two .panel{margin-bottom:0}
+.two + .two,.two + .panel{margin-top:14px}
+.chart{width:100%;height:auto;display:block}
+.chart rect.b{fill:var(--chart)}
+.chart.red rect.b{fill:var(--red)}
+.chart rect.b:hover{fill:var(--accent);opacity:.8}
+.chart text{fill:var(--text-3);font-size:10px;font-family:var(--font)}
+.chart line{stroke:var(--line)}
+.bars .r{display:grid;grid-template-columns:minmax(0,1fr) 120px 54px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.bars .r:last-child{border-bottom:0}
+.bars .bar{height:6px;border-radius:3px;background:var(--chart-soft);overflow:hidden}
+.bars .bar i{display:block;height:100%;background:var(--chart);border-radius:3px}
+.bars .r .x{text-align:right;color:var(--text-2);font-variant-numeric:tabular-nums}
+.bars .who{min-width:0}.bars .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Empty / welcome */
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px}
+.empty .box{max-width:440px;text-align:center}
+.appicon{width:76px;height:76px;border-radius:18px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#3d8bff,#0a5ad1);color:#fff;box-shadow:0 6px 18px rgba(10,90,209,.28),inset 0 0 0 .5px rgba(255,255,255,.25)}
+.appicon svg{width:40px;height:40px;stroke-width:1.7}
+.empty h2{font-size:20px;font-weight:600;margin:0 0 6px}
+.empty p{color:var(--text-2);margin:0 0 18px;line-height:1.5}
+.steps{text-align:left;margin:20px auto 0;border:1px solid var(--line);border-radius:10px;padding:4px 14px}
+.steps li{padding:8px 0;border-bottom:1px solid var(--line);color:var(--text-2);line-height:1.45}
+.steps li:last-child{border-bottom:0}
+.steps b{color:var(--text);font-weight:600}
+.steps ol{margin:0;padding-left:18px}
+
+/* Sheet, menu, toast */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.18);display:none;align-items:flex-start;justify-content:center;z-index:20;padding-left:232px}
+.scrim.on{display:flex}
+.sheet{margin-top:0;width:420px;max-width:calc(100% - 32px);background:var(--sheet);border-radius:0 0 12px 12px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 0 0 .5px rgba(0,0,0,.18);padding:20px;animation:drop .22s ease-out}
+@keyframes drop{from{transform:translateY(-100%)}to{transform:none}}
+.sheet .hd{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.sheet .ic{width:44px;height:44px;border-radius:11px;background:linear-gradient(180deg,#3d8bff,#0a5ad1);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.sheet .ic svg{width:24px;height:24px}
+.sheet h2{font-size:13px;font-weight:600;margin:2px 0 4px}
+.sheet p{margin:0;color:var(--text-2);font-size:12px;line-height:1.45}
+.sheet input.field{width:100%;margin:4px 0 4px}
+.sheet .err{color:var(--red);font-size:12px;min-height:18px;margin:2px 0 6px}
+.sheet .ft{display:flex;justify-content:flex-end;gap:8px;align-items:center}
+.sheet .ft .spin{margin-right:auto}
+.spin{width:14px;height:14px;border:2px solid var(--line-strong);border-top-color:var(--text-2);border-radius:50%;animation:sp .8s linear infinite;visibility:hidden}
+.spin.on{visibility:visible}
+@keyframes sp{to{transform:rotate(360deg)}}
+.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.menu{position:fixed;z-index:30;min-width:230px;background:var(--menu);border-radius:8px;padding:5px;box-shadow:0 10px 30px rgba(0,0,0,.2),0 0 0 .5px rgba(0,0,0,.2);display:none;backdrop-filter:blur(20px)}
+.menu.on{display:block}
+.menu button{display:flex;width:100%;align-items:center;gap:9px;border:0;background:none;text-align:left;padding:5px 9px;border-radius:5px;cursor:default}
+.menu button:hover{background:var(--accent);color:var(--on-accent)}
+.menu button:hover .k{color:var(--on-accent)}
+.menu .k{margin-left:auto;color:var(--text-3);font-size:12px}
+.menu .sep{height:1px;background:var(--line);margin:4px 6px}
+.menu .cap{font-size:11px;color:var(--text-3);padding:3px 9px}
+.toast{position:fixed;right:16px;bottom:38px;z-index:40;background:var(--sheet);border-radius:10px;padding:10px 12px 10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.2),0 0 0 .5px rgba(0,0,0,.15);display:flex;align-items:center;gap:12px;max-width:440px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s}
+.toast.on{transform:none;opacity:1;pointer-events:auto}
+.toast .i{color:var(--green);width:18px;height:18px}
+.toast .tx{flex:1;min-width:0}
+.toast .tx b{display:block;font-weight:600}
+.toast .tx span{color:var(--text-2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.hide{display:none!important}
+@media (max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.scrim{padding-left:0}.search{width:140px}}
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Ringlog</h1>
-    <span class="muted small">v__VERSION__ · runs only on this computer <button id="quit" class="small">Quit</button></span>
-  </header>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-phone" viewBox="0 0 16 16"><rect x="4.25" y="1.25" width="7.5" height="13.5" rx="1.8"/><path d="M7 12.4h2"/></symbol>
+    <symbol id="i-all" viewBox="0 0 16 16"><path d="M5.3 2.2 6.6 5 5.4 6.2a8.3 8.3 0 0 0 4.4 4.4L11 9.4l2.8 1.3-.5 2.2a1.5 1.5 0 0 1-1.6 1.1A11.2 11.2 0 0 1 2 4.3a1.5 1.5 0 0 1 1.1-1.6z"/></symbol>
+    <symbol id="i-in" viewBox="0 0 16 16"><path d="M12.5 3.5 4 12M4 6.5V12h5.5"/></symbol>
+    <symbol id="i-out" viewBox="0 0 16 16"><path d="M3.5 12.5 12 4M6.5 4H12v5.5"/></symbol>
+    <symbol id="i-miss" viewBox="0 0 16 16"><path d="M2.5 5.5 7 10l3-3 3.5 3.5M10.5 10.5h3v-3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 16 16"><rect x="3.25" y="7" width="9.5" height="7" rx="1.6"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.4 10.4 3.1 3.1"/></symbol>
+    <symbol id="i-share" viewBox="0 0 16 16"><path d="M8 10V1.8M5.2 4.4 8 1.6l2.8 2.8M5 6.5H3.8v7.7h8.4V6.5H11"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="m5.3 8.2 1.9 1.9 3.6-4"/></symbol>
+    <symbol id="i-sheet" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M2.5 6h11M2.5 9.5h11M6.5 6v7.5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 16 16"><path d="M4 1.8h5.2L12.5 5v9.2H4z"/><path d="M9 1.8V5h3.5M6 8.5h4.5M6 11h4.5"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 16 16"><path d="M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M13 3.5v3h-3M3 12.5v-3h3"/><path d="M12.6 6.5A5 5 0 0 0 3.6 5M3.4 9.5a5 5 0 0 0 9 1.5"/></symbol>
+  </defs>
+</svg>
 
-  <section id="pick" class="card">
-    <h2>1. Choose an iPhone backup</h2>
-    <div id="list"><p class="muted">Looking for backups…</p></div>
-    <div class="row" style="margin-top:12px">
-      <input id="path" class="grow" placeholder="…or paste the path to a backup folder">
-      <button id="usePath">Open</button>
-    </div>
-    <details class="small muted" style="margin-top:12px">
-      <summary>No backups listed?</summary>
-      <ol>
-        <li>Connect your iPhone with a cable, unlock it and tap <b>Trust</b>.</li>
-        <li>Mac: open <b>Finder</b>, select the iPhone, choose <b>Back up all of the data on your iPhone to this Mac</b>, then <b>Back Up Now</b>.<br>
-            Windows: open <b>Apple Devices</b> or <b>iTunes</b>, select the iPhone, then <b>Back Up Now</b>.</li>
-        <li>On a Mac, if backups still don't show, give your terminal or Ringlog <b>Full Disk Access</b> in System Settings → Privacy &amp; Security.</li>
-      </ol>
-    </details>
-    <div id="pwBox" class="hidden" style="margin-top:14px">
-      <p class="small">This backup is encrypted. Enter the password you set for iPhone backups (not your iPhone passcode). Unlocking takes a few seconds.</p>
-      <div class="row">
-        <input id="pw" type="password" class="grow" placeholder="Backup password" autocomplete="off">
-        <button id="unlock" class="primary">Unlock</button>
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-scroll">
+      <div class="side-h">Backups</div>
+      <div id="backups"></div>
+      <button class="side-item side-add" id="addBackup"><svg class="i"><use href="#i-plus"/></svg><span class="t">Open backup…</span></button>
+      <div id="boxes" class="hide">
+        <div class="side-h" style="margin-top:8px">Calls</div>
+        <button class="side-item on" data-box="all"><svg class="i"><use href="#i-all"/></svg><span class="t">All calls</span><span class="n" data-count="all"></span></button>
+        <button class="side-item missed" data-box="Missed"><svg class="i"><use href="#i-miss"/></svg><span class="t">Missed</span><span class="n" data-count="Missed"></span></button>
+        <button class="side-item" data-box="Incoming"><svg class="i"><use href="#i-in"/></svg><span class="t">Incoming</span><span class="n" data-count="Incoming"></span></button>
+        <button class="side-item" data-box="Outgoing"><svg class="i"><use href="#i-out"/></svg><span class="t">Outgoing</span><span class="n" data-count="Outgoing"></span></button>
       </div>
     </div>
-    <p id="err" class="error hidden"></p>
-  </section>
+    <div class="side-foot"><span>Ringlog __VERSION__ · offline</span><button class="link" id="quit">Quit</button></div>
+  </aside>
 
-  <section id="results" class="hidden">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 id="title" style="margin:0"></h2>
-        <button id="change">Choose another backup</button>
+  <section class="main">
+    <header class="toolbar">
+      <div class="ttl"><h1 id="title">Ringlog</h1><p id="subtitle">iPhone call history</p></div>
+      <div id="tools" class="hide" style="display:flex;align-items:center;gap:10px">
+        <div class="seg" role="tablist">
+          <button class="on" data-view="list">List</button>
+          <button data-view="insights">Insights</button>
+        </div>
+        <select class="pop" id="period" title="Date range">
+          <option value="all">All time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="year">This year</option>
+          <option value="custom">Custom range…</option>
+        </select>
+        <div class="range" id="range"><input class="field" type="date" id="start"><span>to</span><input class="field" type="date" id="end"></div>
+        <label class="search"><svg class="i" style="width:14px;height:14px"><use href="#i-search"/></svg><input id="q" placeholder="Search" spellcheck="false"></label>
+        <button class="btn primary" id="exportBtn"><svg class="i" style="width:14px;height:14px"><use href="#i-share"/></svg>Export</button>
       </div>
-      <div class="row" style="margin-top:14px">
-        <input id="search" class="grow" placeholder="Search name or number">
-        <label class="small muted">From <input id="start" type="date"></label>
-        <label class="small muted">To <input id="end" type="date"></label>
+    </header>
+
+    <div class="content" id="content">
+      <div class="empty" id="welcome">
+        <div class="box">
+          <div class="appicon"><svg class="i"><use href="#i-all"/></svg></div>
+          <h2 id="wTitle">Open an iPhone backup</h2>
+          <p id="wText">Choose a backup in the sidebar to see its call history. Nothing leaves this Mac.</p>
+          <button class="btn primary" id="wOpen">Open backup…</button>
+          <div class="steps" id="howto">
+            <ol>
+              <li>Connect your iPhone with a cable, unlock it, and tap <b>Trust</b>.</li>
+              <li id="howtoBackup">In <b>Finder</b>, select the iPhone, choose <b>Back up all of the data on your iPhone to this Mac</b>, then click <b>Back Up Now</b>.</li>
+              <li>When it's done, click <b>Refresh</b> and the backup appears in the sidebar.</li>
+            </ol>
+          </div>
+          <p style="margin-top:14px;font-size:12px"><button class="link" id="refresh" style="font-size:12px;color:var(--accent)">Refresh</button></p>
+        </div>
       </div>
-      <div class="row" style="margin-top:10px">
-        <label class="chk"><input type="checkbox" class="dir" value="Incoming" checked>Incoming</label>
-        <label class="chk"><input type="checkbox" class="dir" value="Outgoing" checked>Outgoing</label>
-        <label class="chk"><input type="checkbox" class="dir" value="Missed" checked>Missed</label>
-        <span class="grow"></span>
-        <button class="primary exp" data-fmt="xlsx">Export Excel</button>
-        <button class="exp" data-fmt="csv">CSV</button>
-        <button class="exp" data-fmt="html">Report</button>
-      </div>
-    </div>
-    <div id="stats" class="stats"></div>
-    <div class="card wrap">
-      <table>
-        <thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Number</th><th>Type</th><th>Length</th><th>Service</th></tr></thead>
+
+      <table id="table" class="hide">
+        <thead><tr>
+          <th data-sort="name" style="width:34%">Name<span class="ar"></span></th>
+          <th data-sort="direction" style="width:13%">Type<span class="ar"></span></th>
+          <th data-sort="when" class="sorted" style="width:22%">Date<span class="ar">▾</span></th>
+          <th data-sort="duration" class="num" style="width:11%">Length<span class="ar"></span></th>
+          <th data-sort="service" style="width:20%">Service<span class="ar"></span></th>
+        </tr></thead>
         <tbody id="rows"></tbody>
       </table>
-      <p id="more" class="muted small"></p>
+      <div class="empty hide" id="noMatch"><div class="box"><h2 style="font-size:15px">No calls</h2><p>No calls match these filters.</p></div></div>
+
+      <div class="insights hide" id="insights"></div>
     </div>
+    <footer class="status hide" id="status"></footer>
   </section>
-</main>
+</div>
+
+<div class="scrim" id="pwScrim">
+  <form class="sheet" id="pwSheet" autocomplete="off">
+    <div class="hd">
+      <div class="ic"><svg class="i"><use href="#i-lock"/></svg></div>
+      <div>
+        <h2 id="pwTitle">This backup is encrypted</h2>
+        <p>Enter the password you set for iPhone backups. This isn't your iPhone passcode.</p>
+      </div>
+    </div>
+    <input class="field" type="password" id="pw" placeholder="Backup password">
+    <div class="err" id="pwErr"></div>
+    <div class="ft"><span class="spin" id="pwSpin"></span><button type="button" class="btn" id="pwCancel">Cancel</button><button class="btn primary" id="pwOk">Unlock</button></div>
+  </form>
+</div>
+
+<div class="scrim" id="pathScrim">
+  <form class="sheet" id="pathSheet" autocomplete="off">
+    <div class="hd">
+      <div class="ic"><svg class="i"><use href="#i-phone"/></svg></div>
+      <div>
+        <h2>Open a backup folder</h2>
+        <p>Paste the path of a backup folder. It's the folder that contains Manifest.plist.</p>
+      </div>
+    </div>
+    <input class="field" id="pathIn" placeholder="/Users/you/Library/Application Support/MobileSync/Backup/…" spellcheck="false">
+    <div class="err" id="pathErr"></div>
+    <div class="ft"><span class="spin" id="pathSpin"></span><button type="button" class="btn" id="pathCancel">Cancel</button><button class="btn primary">Open</button></div>
+  </form>
+</div>
+
+<div class="menu" id="exportMenu">
+  <div class="cap" id="exportCap">Export calls</div>
+  <button data-fmt="xlsx"><svg class="i"><use href="#i-sheet"/></svg>Excel spreadsheet<span class="k">.xlsx</span></button>
+  <button data-fmt="csv"><svg class="i"><use href="#i-doc"/></svg>CSV file<span class="k">.csv</span></button>
+  <div class="sep"></div>
+  <button data-fmt="html"><svg class="i"><use href="#i-chart"/></svg>Report with charts<span class="k">.html</span></button>
+</div>
+
+<div class="toast" id="toast">
+  <svg class="i"><use href="#i-check"/></svg>
+  <div class="tx"><b id="toastT"></b><span id="toastS"></span></div>
+  <button class="btn" id="toastBtn"></button>
+</div>
+
 <script>
-const TOKEN = "__TOKEN__";
-const $ = (s) => document.querySelector(s);
-let calls = [], current = null;
+const TOKEN = "__TOKEN__", PLATFORM = "__PLATFORM__", MODE = "__MODE__";
+const IS_MAC = PLATFORM === "darwin", IS_WIN = PLATFORM.startsWith("win");
+const IN_WINDOW = MODE === "window";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+let backups = [], openPath = null, pendingPath = null, device = "";
+let calls = [], box = "all", view = "list", sort = {key: "when", dir: -1}, selected = -1, visibleRows = [];
 
 async function api(path, body = {}) {
   const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Ringlog-Token": TOKEN}, body: JSON.stringify(body)});
   return r;
 }
-function showErr(msg) { $("#err").textContent = msg || ""; $("#err").classList.toggle("hidden", !msg); }
-function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const len = (s) => { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${pad(m)}:${pad(x)}` : `${m}:${pad(x)}`; };
+const hours = (s) => s >= 3600 ? `${(s / 3600).toFixed(s >= 36000 ? 0 : 1)} h` : `${Math.round(s / 60)} min`;
+const fmtNum = (n) => n.toLocaleString();
+const icon = (id, extra = "") => `<svg class="i" ${extra}><use href="#i-${id}"/></svg>`;
+const initials = (c) => {
+  if (!c.name) return "#";
+  const p = c.name.split(/\s+/).filter(Boolean);
+  return ((p[0]?.[0] || "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase();
+};
+const dateLabel = (d) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((today - day) / 864e5);
+  const t = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  if (diff === 0) return `Today, ${t}`;
+  if (diff === 1) return `Yesterday, ${t}`;
+  return `${d.toLocaleDateString([], {day: "numeric", month: "short", year: day.getFullYear() === today.getFullYear() ? undefined : "numeric"})}, ${t}`;
+};
+
+/* ---------- Backups ---------- */
+if (IS_WIN) $("#howtoBackup").innerHTML = "Open <b>Apple Devices</b> (or iTunes), select the iPhone, then click <b>Back Up Now</b>.";
+else if (!IS_MAC) $("#howtoBackup").innerHTML = "Make a backup with <b>idevicebackup2</b> or copy one from a Mac or PC.";
 
 async function loadBackups() {
-  const list = await (await api("/api/backups")).json();
-  const box = $("#list");
-  if (!list.length) { box.innerHTML = '<p class="muted">No backups found in the usual places.</p>'; return; }
-  box.innerHTML = "";
-  for (const b of list) {
-    const el = document.createElement("div");
-    el.className = "backup";
-    el.innerHTML = `<span>${b.encrypted ? "🔒" : "📱"}</span><span class="grow">${esc(b.label)}<br><span class="muted small">${esc(b.path)}</span></span>`;
-    el.onclick = () => openBackup(b.path, "");
-    box.appendChild(el);
+  try { backups = await (await api("/api/backups")).json(); } catch { backups = []; }
+  const list = $("#backups");
+  list.innerHTML = backups.map((b, i) => {
+    const d = b.date ? new Date(b.date) : null;
+    return `<button class="side-item${b.path === openPath ? " on" : ""}" data-i="${i}" title="${esc(b.path)}">
+      ${icon("phone")}<span class="t">${esc(b.name)}<span class="s">${d ? d.toLocaleDateString([], {day: "numeric", month: "short", year: "numeric"}) : "Unknown date"} · iOS ${esc(b.ios)}</span></span>
+      ${b.encrypted ? icon("lock", 'class="i lock"') : ""}</button>`;
+  }).join("");
+  $$("#backups .side-item").forEach((el) => (el.onclick = () => openBackup(backups[+el.dataset.i].path, backups[+el.dataset.i].name)));
+  if (!openPath) {
+    $("#wTitle").textContent = backups.length ? "Choose a backup" : "Back up your iPhone first";
+    $("#wText").textContent = backups.length
+      ? `Ringlog found ${backups.length === 1 ? "a backup" : backups.length + " backups"} on this computer. Pick one in the sidebar to see its calls.`
+      : `Ringlog reads call history from a backup on this ${IS_MAC ? "Mac" : "computer"}. Nothing is uploaded anywhere.`;
+    $("#howto").classList.toggle("hide", backups.length > 0);
+    $("#wOpen").textContent = backups.length ? "Open other backup…" : "Open backup folder…";
   }
 }
 
-async function openBackup(path, password) {
-  current = path; showErr("");
+async function chooseFolder() {
+  if (IN_WINDOW) {
+    const r = await api("/api/pick-folder");
+    if (r.ok) { const {path} = await r.json(); if (path) openBackup(path); return; }
+  }
+  $("#pathErr").textContent = ""; $("#pathIn").value = "";
+  $("#pathScrim").classList.add("on"); setTimeout(() => $("#pathIn").focus(), 50);
+}
+
+async function openBackup(path, name, password = "") {
+  pendingPath = path;
+  const pw = !!password;
+  $(pw ? "#pwSpin" : "#pathSpin").classList.add("on");
   document.body.style.cursor = "progress";
-  $("#unlock").disabled = true;
   try {
     const r = await api("/api/open", {path, password});
     const data = await r.json();
     if (!r.ok) {
-      $("#pwBox").classList.toggle("hidden", !data.needPassword);
-      if (data.needPassword) $("#pw").focus();
-      if (!(data.needPassword && !password)) showErr(data.error);
+      if (data.needPassword) {
+        $("#pathScrim").classList.remove("on");
+        $("#pwTitle").textContent = `“${name || (backups.find((b) => b.path === path) || {}).name || "This backup"}” is encrypted`;
+        $("#pwScrim").classList.add("on");
+        if (password) { $("#pwErr").textContent = "That password isn't correct. Try again."; $("#pwSheet").classList.remove("shake"); void $("#pwSheet").offsetWidth; $("#pwSheet").classList.add("shake"); $("#pw").select(); }
+        else { $("#pwErr").textContent = ""; $("#pw").value = ""; }
+        setTimeout(() => $("#pw").focus(), 60);
+      } else if ($("#pathScrim").classList.contains("on")) {
+        $("#pathErr").textContent = data.error;
+      } else {
+        $("#pathScrim").classList.add("on"); $("#pathIn").value = path; $("#pathErr").textContent = data.error;
+      }
       return;
     }
+    $("#pwScrim").classList.remove("on"); $("#pathScrim").classList.remove("on"); $("#pw").value = "";
+    openPath = data.path; device = data.device;
     calls = data.calls.map((c) => ({...c, date: new Date(c.when)}));
-    $("#pw").value = "";
-    $("#pwBox").classList.add("hidden");
-    $("#pick").classList.add("hidden");
-    $("#results").classList.remove("hidden");
-    $("#title").textContent = `${data.device} · ${calls.length} calls`;
-    render();
-  } catch (e) {
-    showErr("Ringlog isn't responding. Is its window still open?");
+    selected = -1;
+    $("#tools").classList.remove("hide"); $("#boxes").classList.remove("hide"); $("#status").classList.remove("hide");
+    $("#welcome").classList.add("hide");
+    loadBackups(); render();
+  } catch {
+    alert("Ringlog stopped responding. Reopen the app and try again.");
   } finally {
+    $("#pwSpin").classList.remove("on"); $("#pathSpin").classList.remove("on");
     document.body.style.cursor = "";
-    $("#unlock").disabled = false;
   }
 }
 
-function filters() {
-  return {
-    search: $("#search").value, start: $("#start").value, end: $("#end").value,
-    directions: [...document.querySelectorAll(".dir:checked")].map((x) => x.value),
-  };
+/* ---------- Filters ---------- */
+function range() {
+  const p = $("#period").value;
+  if (p === "custom") return {start: $("#start").value, end: $("#end").value};
+  if (p === "all") return {start: "", end: ""};
+  const d = new Date();
+  if (p === "year") return {start: `${d.getFullYear()}-01-01`, end: ""};
+  d.setDate(d.getDate() - (+p - 1));
+  return {start: ymd(d), end: ""};
 }
-function ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
-function len(s) { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}` : `${m}:${String(x).padStart(2,"0")}`; }
-
-function visible() {
-  const f = filters(), q = f.search.trim().toLowerCase(), digits = q.replace(/\D/g, "").slice(-9);
+function baseFiltered() {
+  const {start, end} = range(), q = $("#q").value.trim().toLowerCase(), digits = /\d/.test(q) ? q.replace(/\D/g, "").slice(-9) : "";
   return calls.filter((c) => {
     const d = ymd(c.date);
-    if (f.start && d < f.start) return false;
-    if (f.end && d > f.end) return false;
-    if (!f.directions.includes(c.direction)) return false;
-    if (q && !c.name.toLowerCase().includes(q) && !(digits && c.number.replace(/\D/g, "").includes(digits))) return false;
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    if (q && !c.name.toLowerCase().includes(q) && !c.service.toLowerCase().includes(q) && !(digits && c.number.replace(/\D/g, "").includes(digits)) && !c.number.toLowerCase().includes(q)) return false;
     return true;
   });
 }
-
-function render() {
-  const v = visible();
-  const n = (d) => v.filter((c) => c.direction === d).length;
-  const talk = v.reduce((a, c) => a + c.duration, 0);
-  const people = new Set(v.map((c) => c.name || c.number)).size;
-  $("#stats").innerHTML = [["Calls", v.length], ["Incoming", n("Incoming")], ["Outgoing", n("Outgoing")], ["Missed", n("Missed")], ["Talk time", len(talk)], ["Contacts", people]]
-    .map(([k, x]) => `<div class="stat"><b>${x}</b><span>${k}</span></div>`).join("");
-  const LIMIT = 500;
-  $("#rows").innerHTML = v.slice(0, LIMIT).map((c) =>
-    `<tr><td>${ymd(c.date)}</td><td>${c.date.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}</td><td>${esc(c.name)}</td><td>${esc(c.number)}</td><td class="${c.direction}">${c.direction}</td><td class="n">${len(c.duration)}</td><td>${esc(c.service)}</td></tr>`).join("");
-  $("#more").textContent = v.length > LIMIT ? `Showing the newest ${LIMIT} of ${v.length}. Exports include all of them.` : "";
-  document.querySelectorAll(".exp").forEach((b) => (b.disabled = !v.length));
+function exportFilters() {
+  return {...range(), search: $("#q").value, directions: box === "all" ? [] : [box]};
 }
 
+/* ---------- Render ---------- */
+function render() {
+  const base = baseFiltered();
+  const counts = {all: base.length, Missed: 0, Incoming: 0, Outgoing: 0};
+  base.forEach((c) => counts[c.direction]++);
+  $$("[data-count]").forEach((el) => (el.textContent = fmtNum(counts[el.dataset.count])));
+  const rows = box === "all" ? base : base.filter((c) => c.direction === box);
+  const titles = {all: "All calls", Missed: "Missed calls", Incoming: "Incoming calls", Outgoing: "Outgoing calls"};
+  $("#title").textContent = view === "insights" ? "Insights" : titles[box];
+  $("#subtitle").textContent = `${device} · ${fmtNum(rows.length)} ${rows.length === 1 ? "call" : "calls"}`;
+  const talk = rows.reduce((a, c) => a + c.duration, 0);
+  const people = new Set(rows.map((c) => c.name || c.number)).size;
+  $("#status").innerHTML = `<span>${fmtNum(rows.length)} calls</span><span>${len(talk)} talk time</span><span>${fmtNum(people)} contacts</span>`;
+  $("#exportBtn").disabled = !rows.length;
+  $("#exportCap").textContent = `Export ${fmtNum(rows.length)} ${rows.length === 1 ? "call" : "calls"}`;
+
+  $("#table").classList.toggle("hide", view !== "list" || !rows.length);
+  $("#noMatch").classList.toggle("hide", !!rows.length);
+  $("#insights").classList.toggle("hide", view !== "insights" || !rows.length);
+  if (view === "list") renderTable(rows); else renderInsights(rows);
+}
+
+function renderTable(rows) {
+  const k = sort.key, dir = sort.dir;
+  const val = (c) => k === "when" ? c.date.getTime() : k === "duration" ? c.duration : k === "name" ? (c.name || c.number).toLowerCase() : String(c[k]).toLowerCase();
+  visibleRows = [...rows].sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * dir);
+  $$("thead th").forEach((th) => {
+    const on = th.dataset.sort === k;
+    th.classList.toggle("sorted", on);
+    $(".ar", th).textContent = on ? (dir < 0 ? "▾" : "▴") : "";
+  });
+  const dirIcon = {Incoming: "in", Outgoing: "out", Missed: "miss"};
+  $("#rows").innerHTML = visibleRows.map((c, i) => `<tr data-i="${i}"${i === selected ? ' class="sel"' : ""}>
+    <td class="${c.direction === "Missed" ? "missed" : ""}"><div class="who"><span class="av">${esc(initials(c))}</span><span class="nm">${esc(c.name || c.number)}</span>${c.name ? `<span class="sub">${esc(c.number)}</span>` : ""}</div></td>
+    <td><span class="dir ${c.direction}">${icon(dirIcon[c.direction])}${c.direction}</span></td>
+    <td>${dateLabel(c.date)}</td>
+    <td class="num">${c.direction === "Missed" ? '<span class="sub">–</span>' : len(c.duration)}</td>
+    <td class="sub">${esc(c.service)}</td></tr>`).join("");
+}
+
+function barChart(values, labelEvery, W = 720, H = 150, cls = "") {
+  if (!values.length) return "";
+  const top = 8, bottom = 20, peak = Math.max(1, ...values.map((v) => v[1]));
+  const n = values.length, step = W / n, bw = Math.max(2, Math.min(26, step * 0.68));
+  const grid = [0.5, 1].map((f) => `<line x1="0" x2="${W}" y1="${top + (H - top - bottom) * (1 - f)}" y2="${top + (H - top - bottom) * (1 - f)}"/>`).join("");
+  const bars = values.map(([lab, v], i) => {
+    const h = Math.max(v ? 2 : 0, (v / peak) * (H - top - bottom));
+    const x = i * step + (step - bw) / 2;
+    return `<rect class="b" x="${x.toFixed(1)}" y="${(H - bottom - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"><title>${esc(lab)}: ${v} ${v === 1 ? "call" : "calls"}</title></rect>` +
+      (i % labelEvery === 0 ? `<text x="${(i * step + step / 2).toFixed(1)}" y="${H - 5}" text-anchor="middle">${esc(lab)}</text>` : "");
+  }).join("");
+  return `<svg class="chart ${cls}" viewBox="0 0 ${W} ${H}">${grid}${bars}<text x="0" y="${top + 8}" style="text-anchor:start">${peak}</text></svg>`;
+}
+
+function renderInsights(rows) {
+  const talk = rows.reduce((a, c) => a + c.duration, 0);
+  const answered = rows.filter((c) => c.direction !== "Missed");
+  const missed = rows.length - answered.length;
+  const first = rows.reduce((a, c) => (c.date < a ? c.date : a), rows[0].date);
+  const last = rows.reduce((a, c) => (c.date > a ? c.date : a), rows[0].date);
+  const span = Math.max(1, Math.round((new Date(ymd(last)) - new Date(ymd(first))) / 864e5) + 1);
+
+  const byDay = new Map();
+  for (let i = 0; i < span; i++) { const d = new Date(new Date(ymd(first)).getTime() + i * 864e5); byDay.set(ymd(d), 0); }
+  rows.forEach((c) => byDay.set(ymd(c.date), (byDay.get(ymd(c.date)) || 0) + 1));
+  let series = [...byDay.entries()].sort().map(([d, n]) => [new Date(d + "T12:00").toLocaleDateString([], {day: "numeric", month: "short"}), n]);
+  let unit = "day";
+  if (series.length > 75) {
+    unit = "week";
+    const weeks = [];
+    for (let i = 0; i < series.length; i += 7) weeks.push([series[i][0], series.slice(i, i + 7).reduce((a, x) => a + x[1], 0)]);
+    series = weeks;
+  }
+  const hourMiss = Array(24).fill(0);
+  rows.forEach((c) => c.direction === "Missed" && hourMiss[c.date.getHours()]++);
+  const wd = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], byWd = Array(7).fill(0);
+  rows.forEach((c) => byWd[(c.date.getDay() + 6) % 7]++);
+
+  const people = new Map();
+  rows.forEach((c) => { const k = c.name || c.number; const p = people.get(k) || {c, n: 0, t: 0}; p.n++; p.t += c.duration; people.set(k, p); });
+  const top = [...people.values()].sort((a, b) => b.n - a.n || b.t - a.t).slice(0, 8);
+  const topMax = Math.max(1, ...top.map((p) => p.n));
+  const longest = [...answered].sort((a, b) => b.duration - a.duration).slice(0, 8);
+  const longMax = Math.max(1, ...longest.map((c) => c.duration));
+  const person = (c) => `<div class="who"><span class="av">${esc(initials(c))}</span><span>${esc(c.name || c.number)}</span></div>`;
+
+  $("#insights").innerHTML = `
+    <div class="tiles">
+      <div class="tile"><div class="k">Calls</div><div class="v">${fmtNum(rows.length)}<small>${(rows.length / span).toFixed(1)} a day</small></div></div>
+      <div class="tile"><div class="k">Talk time</div><div class="v">${hours(talk)}</div></div>
+      <div class="tile"><div class="k">Average call</div><div class="v">${len(Math.round(answered.length ? talk / answered.length : 0))}</div></div>
+      <div class="tile"><div class="k">Missed</div><div class="v" style="color:var(--red)">${fmtNum(missed)}<small>${rows.length ? Math.round((missed / rows.length) * 100) : 0}%</small></div></div>
+      <div class="tile"><div class="k">Contacts</div><div class="v">${fmtNum(people.size)}</div></div>
+    </div>
+    <div class="panel"><h3>Calls per ${unit}<span>${first.toLocaleDateString([], {day: "numeric", month: "short", year: "numeric"})} – ${last.toLocaleDateString([], {day: "numeric", month: "short", year: "numeric"})}</span></h3>${barChart(series, Math.max(1, Math.ceil(series.length / 10)))}</div>
+    <div class="two">
+      <div class="panel"><h3>Missed calls by hour<span>${fmtNum(missed)} missed</span></h3>
+        ${barChart(hourMiss.map((v, h) => [h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`, v]), 3, 400, 170, "red")}</div>
+      <div class="panel"><h3>By weekday<span>all calls</span></h3>${barChart(wd.map((d, i) => [d, byWd[i]]), 1, 400, 170)}</div>
+    </div>
+    <div class="two">
+      <div class="panel"><h3>Most frequent<span>calls</span></h3><div class="bars">${top.map((p) => `<div class="r">${person(p.c)}<div class="bar"><i style="width:${(p.n / topMax) * 100}%"></i></div><span class="x">${p.n}</span></div>`).join("")}</div></div>
+      <div class="panel"><h3>Longest calls<span>length</span></h3><div class="bars">${longest.map((c) => `<div class="r">${person(c)}<div class="bar"><i style="width:${(c.duration / longMax) * 100}%"></i></div><span class="x">${len(c.duration)}</span></div>`).join("") || '<p class="sub">No answered calls.</p>'}</div></div>
+    </div>`;
+}
+
+/* ---------- Export ---------- */
 async function exportAs(fmt) {
-  const r = await api("/api/export", {format: fmt, ...filters()});
-  if (!r.ok) { alert((await r.json()).error); return; }
+  closeMenu();
+  const r = await api("/api/export", {format: fmt, ...exportFilters()});
+  const type = r.headers.get("Content-Type") || "";
+  if (!r.ok) { alert((await r.json()).error || "Export failed."); return; }
+  if (type.startsWith("application/json")) {
+    const res = await r.json();
+    if (res.cancelled) return;
+    showToast(`Exported ${fmtNum(res.count)} calls`, res.path.split(/[\\/]/).pop(), IS_MAC ? "Show in Finder" : "Show in folder", () => api("/api/reveal", {path: res.path}));
+    return;
+  }
   const name = (r.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || `calls.${fmt}`;
   const url = URL.createObjectURL(await r.blob());
   const a = Object.assign(document.createElement("a"), {href: url, download: name});
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  showToast("Export ready", `${name} is in your Downloads folder`);
 }
+let toastTimer;
+function showToast(title, sub, btn, action) {
+  $("#toastT").textContent = title; $("#toastS").textContent = sub;
+  $("#toastBtn").classList.toggle("hide", !btn); $("#toastBtn").textContent = btn || "";
+  $("#toastBtn").onclick = () => { action && action(); $("#toast").classList.remove("on"); };
+  $("#toast").classList.add("on"); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("#toast").classList.remove("on"), 7000);
+}
+function openMenu() {
+  const b = $("#exportBtn").getBoundingClientRect(), m = $("#exportMenu");
+  m.classList.add("on");
+  m.style.top = `${b.bottom + 6}px`;
+  m.style.left = `${Math.max(8, b.right - m.offsetWidth)}px`;
+}
+function closeMenu() { $("#exportMenu").classList.remove("on"); }
 
-$("#usePath").onclick = () => $("#path").value.trim() && openBackup($("#path").value.trim(), "");
-$("#path").onkeydown = (e) => e.key === "Enter" && $("#usePath").click();
-$("#unlock").onclick = () => openBackup(current, $("#pw").value);
-$("#pw").onkeydown = (e) => e.key === "Enter" && $("#unlock").click();
-$("#change").onclick = () => { calls = []; $("#results").classList.add("hidden"); $("#pick").classList.remove("hidden"); loadBackups(); };
-["#search", "#start", "#end"].forEach((s) => ($(s).oninput = render));
-document.querySelectorAll(".dir").forEach((x) => (x.onchange = render));
-document.querySelectorAll(".exp").forEach((b) => (b.onclick = () => exportAs(b.dataset.fmt)));
-$("#quit").onclick = async () => { await api("/api/quit"); document.body.innerHTML = '<main><h1>Ringlog has stopped</h1><p class="muted">You can close this tab.</p></main>'; };
+/* ---------- Events ---------- */
+$("#addBackup").onclick = chooseFolder;
+$("#wOpen").onclick = chooseFolder;
+$("#refresh").onclick = loadBackups;
+$$("[data-box]").forEach((el) => (el.onclick = () => {
+  box = el.dataset.box; selected = -1;
+  $$("[data-box]").forEach((x) => x.classList.toggle("on", x === el));
+  render();
+}));
+$$("[data-view]").forEach((el) => (el.onclick = () => {
+  view = el.dataset.view;
+  $$("[data-view]").forEach((x) => x.classList.toggle("on", x === el));
+  $("#content").scrollTop = 0; render();
+}));
+$("#period").onchange = () => {
+  const custom = $("#period").value === "custom";
+  $("#range").classList.toggle("on", custom);
+  if (custom && !$("#start").value && calls.length) {
+    $("#start").value = ymd(calls.reduce((a, c) => (c.date < a ? c.date : a), calls[0].date));
+    $("#end").value = ymd(new Date());
+  }
+  render();
+};
+["#start", "#end"].forEach((s) => ($(s).onchange = render));
+$("#q").oninput = () => { selected = -1; render(); };
+$$("thead th").forEach((th) => (th.onclick = () => {
+  const k = th.dataset.sort;
+  sort = sort.key === k ? {key: k, dir: -sort.dir} : {key: k, dir: k === "when" || k === "duration" ? -1 : 1};
+  selected = -1; renderTable(box === "all" ? baseFiltered() : baseFiltered().filter((c) => c.direction === box));
+}));
+$("#rows").onclick = (e) => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const prev = $("#rows tr.sel"); prev && prev.classList.remove("sel");
+  selected = +tr.dataset.i; tr.classList.add("sel");
+};
+$("#exportBtn").onclick = (e) => { e.stopPropagation(); $("#exportMenu").classList.contains("on") ? closeMenu() : openMenu(); };
+$$("#exportMenu [data-fmt]").forEach((b) => (b.onclick = () => exportAs(b.dataset.fmt)));
+document.addEventListener("click", (e) => { if (!e.target.closest("#exportMenu")) closeMenu(); });
+$("#pwSheet").onsubmit = (e) => { e.preventDefault(); if (!$("#pw").value) { $("#pwErr").textContent = "Enter the backup password."; return; } openBackup(pendingPath, null, $("#pw").value); };
+$("#pwCancel").onclick = () => $("#pwScrim").classList.remove("on");
+$("#pw").oninput = () => ($("#pwErr").textContent = "");
+$("#pathSheet").onsubmit = (e) => { e.preventDefault(); const p = $("#pathIn").value.trim(); if (!p) { $("#pathErr").textContent = "Enter a folder path."; return; } openBackup(p); };
+$("#pathCancel").onclick = () => $("#pathScrim").classList.remove("on");
+$("#pathIn").oninput = () => ($("#pathErr").textContent = "");
+$("#quit").onclick = async () => {
+  await api("/api/quit").catch(() => {});
+  document.body.innerHTML = '<div class="empty"><div class="box"><h2>Ringlog has quit</h2><p>You can close this tab.</p></div></div>';
+};
+document.addEventListener("keydown", (e) => {
+  const mod = IS_MAC ? e.metaKey : e.ctrlKey;
+  if (e.key === "Escape") { closeMenu(); $("#pwScrim").classList.remove("on"); $("#pathScrim").classList.remove("on"); }
+  if (mod && e.key.toLowerCase() === "f" && calls.length) { e.preventDefault(); $("#q").focus(); $("#q").select(); }
+  if (mod && e.key.toLowerCase() === "e" && calls.length) { e.preventDefault(); openMenu(); }
+  if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); chooseFolder(); }
+  if (view === "list" && visibleRows.length && (e.key === "ArrowDown" || e.key === "ArrowUp") && document.activeElement.tagName !== "INPUT") {
+    e.preventDefault();
+    selected = Math.min(visibleRows.length - 1, Math.max(0, selected + (e.key === "ArrowDown" ? 1 : -1)));
+    $$("#rows tr").forEach((tr) => tr.classList.toggle("sel", +tr.dataset.i === selected));
+    $(`#rows tr[data-i="${selected}"]`)?.scrollIntoView({block: "nearest"});
+  }
+});
 loadBackups();
 </script>
 </body>
