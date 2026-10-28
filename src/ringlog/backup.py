@@ -66,6 +66,11 @@ class BackupInfo:
     encrypted: bool
 
     @property
+    def id(self) -> str:
+        """Stable key for this backup: Apple names the folder after the device id."""
+        return self.path.name
+
+    @property
     def label(self) -> str:
         when = self.last_backup.strftime("%Y-%m-%d %H:%M") if self.last_backup else "unknown date"
         lock = ", encrypted" if self.encrypted else ""
@@ -91,6 +96,22 @@ def read_info(path: Path) -> BackupInfo:
         last_backup=info.get("Last Backup Date") or manifest.get("Date"),
         encrypted=bool(manifest.get("IsEncrypted")),
     )
+
+
+def blocked_backup_dirs(dirs: list[Path] | None = None) -> list[Path]:
+    """Backup folders that exist but this app isn't allowed to read.
+
+    On macOS that means Ringlog (or the terminal running it) needs Full Disk Access.
+    """
+    blocked = []
+    for root in dirs or default_backup_dirs():
+        try:
+            next(iter(Path(root).iterdir()), None)
+        except PermissionError:
+            blocked.append(Path(root))
+        except OSError:
+            continue
+    return blocked
 
 
 def find_backups(dirs: list[Path] | None = None) -> list[BackupInfo]:

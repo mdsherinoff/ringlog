@@ -49,9 +49,21 @@ Ringlog opens in its own window, laid out like a Mac app:
 - **List:** a sortable table of every call. Click a column header to sort, and use the arrow keys to move through rows.
 - **Insights:** totals, calls per day or week, missed calls by hour, busiest weekdays, most frequent contacts and longest calls.
 
-Export saves exactly what you're looking at as Excel, CSV or an HTML report, and **Show in Finder** takes you to the file.
+- **Contact details:** click a call to see everyone's totals, first and last call, and their recent calls. **Show only** filters the list to that person, and right-click gives you *Copy number*, *Copy name* and more.
+- **Apps:** filter by Phone, WhatsApp, FaceTime and other calling apps.
 
-Shortcuts: <kbd>⌘O</kbd> open a backup · <kbd>⌘F</kbd> search · <kbd>⌘E</kbd> export · <kbd>Esc</kbd> close. On Windows, use <kbd>Ctrl</kbd>.
+Every filter shows as a chip under the toolbar, so you can see and remove what's applied. Export saves exactly what you're looking at, in the order shown, as Excel, CSV or an HTML report. Files are named after the phone and dates, and **Show in Finder** takes you to the file.
+
+### Small things that help
+
+- Ringlog reopens your last backup when it starts, and remembers your view, sort order and window size.
+- For encrypted backups, tick **Remember this password** to keep it in your Keychain (Windows: Credential Manager). Right-click the backup to forget it again.
+- Date ranges like *Last 30 days* count back from the newest call in the backup, so an old backup doesn't come up empty.
+- New backups appear in the sidebar when you switch back to Ringlog.
+- If macOS is blocking access, Ringlog says so and takes you to the right Privacy setting.
+- Large histories stay fast: the list only draws the rows on screen.
+
+Shortcuts: <kbd>⌘O</kbd> open a backup · <kbd>⌘F</kbd> search (or start typing) · <kbd>⌘E</kbd> export · <kbd>⌘1</kbd>/<kbd>⌘2</kbd> list/insights · <kbd>↑</kbd><kbd>↓</kbd> move through calls · <kbd>⌘I</kbd> contact details · <kbd>⌘C</kbd> copy number · <kbd>⌘R</kbd> refresh backups · <kbd>Esc</kbd> close. On Windows, use <kbd>Ctrl</kbd>. The same commands are in the File and View menus.
 
 Backups kept somewhere else, such as an external drive, can be opened with **Open backup…**, or listed automatically by setting `RINGLOG_BACKUP_DIR` to that folder. `ringlog app --browser` uses your web browser instead of a window.
 
@@ -75,7 +87,8 @@ Options: `--backup PATH` (default: the newest backup), `--password` (asked for i
 
 - Ringlog works fully offline. It makes no network requests and has no analytics.
 - The app is a small web server bound to `127.0.0.1` only. It accepts requests only from its own page, using a random token created each time it starts.
-- Your backup is never changed. Decrypted copies live in a temporary folder that is deleted when you're done.
+- Your backup is never changed. Decrypted copies live in a temporary folder that is deleted when you're done (and cleaned up on the next launch if Ringlog was force-quit).
+- Settings live in a small file (`~/Library/Application Support/Ringlog/prefs.json` on a Mac). It holds no call data or passwords. Saved backup passwords go only in your Keychain, and only if you ask.
 - Exported files contain personal data. Keep them somewhere private.
 
 ## Limits
