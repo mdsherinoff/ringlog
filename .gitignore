@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+*.spec
+.pytest_cache/
+# never commit real call data
+*.xlsx
+*.csv
+report*.html
+call-history-*

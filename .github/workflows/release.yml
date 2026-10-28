@@ -1,0 +1,32 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            asset: Ringlog-macOS.zip
+          - os: windows-latest
+            asset: Ringlog-Windows.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install . pyinstaller
+      - run: pyinstaller --onefile --name Ringlog --collect-data ringlog packaging/launcher.py
+      - name: Zip (macOS)
+        if: runner.os == 'macOS'
+        run: cd dist && zip ../${{ matrix.asset }} Ringlog
+      - name: Zip (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist/Ringlog.exe -DestinationPath ${{ matrix.asset }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}

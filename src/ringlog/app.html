@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ringlog</title>
+<style>
+:root{--bg:#f6f6f4;--card:#fff;--ink:#1c1c1e;--muted:#6e6e73;--line:#e2e2df;--accent:#2f6fde;--accent-ink:#fff;--bad:#c4362b;--miss:#c4362b;--in:#24804a;--out:#2f6fde}
+@media (prefers-color-scheme:dark){:root{--bg:#131315;--card:#1d1d20;--ink:#f1f1f1;--muted:#9a9aa0;--line:#323236;--accent:#6a9cff;--accent-ink:#0d1a33;--bad:#ff7a6e;--miss:#ff7a6e;--in:#5fd38d;--out:#6a9cff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:28px 16px 64px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:24px;margin:0}h2{font-size:16px;margin:0 0 12px}
+.muted{color:var(--muted)}.small{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 14px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:disabled{opacity:.5;cursor:default}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1 1 220px}
+.backup{display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer}
+.backup:hover{border-color:var(--accent)}
+.error{color:var(--bad);margin:10px 0 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat b{display:block;font-size:20px}.stat span{color:var(--muted);font-size:13px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:500}td.n{text-align:right;font-variant-numeric:tabular-nums}
+.Missed{color:var(--miss)}.Incoming{color:var(--in)}.Outgoing{color:var(--out)}
+label.chk{display:inline-flex;gap:5px;align-items:center}
+.hidden{display:none}
+ol{padding-left:20px;margin:8px 0}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Ringlog</h1>
+    <span class="muted small">v__VERSION__ · runs only on this computer <button id="quit" class="small">Quit</button></span>
+  </header>
+
+  <section id="pick" class="card">
+    <h2>1. Choose an iPhone backup</h2>
+    <div id="list"><p class="muted">Looking for backups…</p></div>
+    <div class="row" style="margin-top:12px">
+      <input id="path" class="grow" placeholder="…or paste the path to a backup folder">
+      <button id="usePath">Open</button>
+    </div>
+    <details class="small muted" style="margin-top:12px">
+      <summary>No backups listed?</summary>
+      <ol>
+        <li>Connect your iPhone with a cable, unlock it and tap <b>Trust</b>.</li>
+        <li>Mac: open <b>Finder</b>, select the iPhone, choose <b>Back up all of the data on your iPhone to this Mac</b>, then <b>Back Up Now</b>.<br>
+            Windows: open <b>Apple Devices</b> or <b>iTunes</b>, select the iPhone, then <b>Back Up Now</b>.</li>
+        <li>On a Mac, if backups still don't show, give your terminal or Ringlog <b>Full Disk Access</b> in System Settings → Privacy &amp; Security.</li>
+      </ol>
+    </details>
+    <div id="pwBox" class="hidden" style="margin-top:14px">
+      <p class="small">This backup is encrypted. Enter the password you set for iPhone backups (not your iPhone passcode). Unlocking takes a few seconds.</p>
+      <div class="row">
+        <input id="pw" type="password" class="grow" placeholder="Backup password" autocomplete="off">
+        <button id="unlock" class="primary">Unlock</button>
+      </div>
+    </div>
+    <p id="err" class="error hidden"></p>
+  </section>
+
+  <section id="results" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="title" style="margin:0"></h2>
+        <button id="change">Choose another backup</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <input id="search" class="grow" placeholder="Search name or number">
+        <label class="small muted">From <input id="start" type="date"></label>
+        <label class="small muted">To <input id="end" type="date"></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="chk"><input type="checkbox" class="dir" value="Incoming" checked>Incoming</label>
+        <label class="chk"><input type="checkbox" class="dir" value="Outgoing" checked>Outgoing</label>
+        <label class="chk"><input type="checkbox" class="dir" value="Missed" checked>Missed</label>
+        <span class="grow"></span>
+        <button class="primary exp" data-fmt="xlsx">Export Excel</button>
+        <button class="exp" data-fmt="csv">CSV</button>
+        <button class="exp" data-fmt="html">Report</button>
+      </div>
+    </div>
+    <div id="stats" class="stats"></div>
+    <div class="card wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Number</th><th>Type</th><th>Length</th><th>Service</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p id="more" class="muted small"></p>
+    </div>
+  </section>
+</main>
+<script>
+const TOKEN = "__TOKEN__";
+const $ = (s) => document.querySelector(s);
+let calls = [], current = null;
+
+async function api(path, body = {}) {
+  const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Ringlog-Token": TOKEN}, body: JSON.stringify(body)});
+  return r;
+}
+function showErr(msg) { $("#err").textContent = msg || ""; $("#err").classList.toggle("hidden", !msg); }
+function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+async function loadBackups() {
+  const list = await (await api("/api/backups")).json();
+  const box = $("#list");
+  if (!list.length) { box.innerHTML = '<p class="muted">No backups found in the usual places.</p>'; return; }
+  box.innerHTML = "";
+  for (const b of list) {
+    const el = document.createElement("div");
+    el.className = "backup";
+    el.innerHTML = `<span>${b.encrypted ? "🔒" : "📱"}</span><span class="grow">${esc(b.label)}<br><span class="muted small">${esc(b.path)}</span></span>`;
+    el.onclick = () => openBackup(b.path, "");
+    box.appendChild(el);
+  }
+}
+
+async function openBackup(path, password) {
+  current = path; showErr("");
+  document.body.style.cursor = "progress";
+  $("#unlock").disabled = true;
+  try {
+    const r = await api("/api/open", {path, password});
+    const data = await r.json();
+    if (!r.ok) {
+      $("#pwBox").classList.toggle("hidden", !data.needPassword);
+      if (data.needPassword) $("#pw").focus();
+      if (!(data.needPassword && !password)) showErr(data.error);
+      return;
+    }
+    calls = data.calls.map((c) => ({...c, date: new Date(c.when)}));
+    $("#pw").value = "";
+    $("#pwBox").classList.add("hidden");
+    $("#pick").classList.add("hidden");
+    $("#results").classList.remove("hidden");
+    $("#title").textContent = `${data.device} · ${calls.length} calls`;
+    render();
+  } catch (e) {
+    showErr("Ringlog isn't responding. Is its window still open?");
+  } finally {
+    document.body.style.cursor = "";
+    $("#unlock").disabled = false;
+  }
+}
+
+function filters() {
+  return {
+    search: $("#search").value, start: $("#start").value, end: $("#end").value,
+    directions: [...document.querySelectorAll(".dir:checked")].map((x) => x.value),
+  };
+}
+function ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function len(s) { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}` : `${m}:${String(x).padStart(2,"0")}`; }
+
+function visible() {
+  const f = filters(), q = f.search.trim().toLowerCase(), digits = q.replace(/\D/g, "").slice(-9);
+  return calls.filter((c) => {
+    const d = ymd(c.date);
+    if (f.start && d < f.start) return false;
+    if (f.end && d > f.end) return false;
+    if (!f.directions.includes(c.direction)) return false;
+    if (q && !c.name.toLowerCase().includes(q) && !(digits && c.number.replace(/\D/g, "").includes(digits))) return false;
+    return true;
+  });
+}
+
+function render() {
+  const v = visible();
+  const n = (d) => v.filter((c) => c.direction === d).length;
+  const talk = v.reduce((a, c) => a + c.duration, 0);
+  const people = new Set(v.map((c) => c.name || c.number)).size;
+  $("#stats").innerHTML = [["Calls", v.length], ["Incoming", n("Incoming")], ["Outgoing", n("Outgoing")], ["Missed", n("Missed")], ["Talk time", len(talk)], ["Contacts", people]]
+    .map(([k, x]) => `<div class="stat"><b>${x}</b><span>${k}</span></div>`).join("");
+  const LIMIT = 500;
+  $("#rows").innerHTML = v.slice(0, LIMIT).map((c) =>
+    `<tr><td>${ymd(c.date)}</td><td>${c.date.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}</td><td>${esc(c.name)}</td><td>${esc(c.number)}</td><td class="${c.direction}">${c.direction}</td><td class="n">${len(c.duration)}</td><td>${esc(c.service)}</td></tr>`).join("");
+  $("#more").textContent = v.length > LIMIT ? `Showing the newest ${LIMIT} of ${v.length}. Exports include all of them.` : "";
+  document.querySelectorAll(".exp").forEach((b) => (b.disabled = !v.length));
+}
+
+async function exportAs(fmt) {
+  const r = await api("/api/export", {format: fmt, ...filters()});
+  if (!r.ok) { alert((await r.json()).error); return; }
+  const name = (r.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || `calls.${fmt}`;
+  const url = URL.createObjectURL(await r.blob());
+  const a = Object.assign(document.createElement("a"), {href: url, download: name});
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+$("#usePath").onclick = () => $("#path").value.trim() && openBackup($("#path").value.trim(), "");
+$("#path").onkeydown = (e) => e.key === "Enter" && $("#usePath").click();
+$("#unlock").onclick = () => openBackup(current, $("#pw").value);
+$("#pw").onkeydown = (e) => e.key === "Enter" && $("#unlock").click();
+$("#change").onclick = () => { calls = []; $("#results").classList.add("hidden"); $("#pick").classList.remove("hidden"); loadBackups(); };
+["#search", "#start", "#end"].forEach((s) => ($(s).oninput = render));
+document.querySelectorAll(".dir").forEach((x) => (x.onchange = render));
+document.querySelectorAll(".exp").forEach((b) => (b.onclick = () => exportAs(b.dataset.fmt)));
+$("#quit").onclick = async () => { await api("/api/quit"); document.body.innerHTML = '<main><h1>Ringlog has stopped</h1><p class="muted">You can close this tab.</p></main>'; };
+loadBackups();
+</script>
+</body>
+</html>
